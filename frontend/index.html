@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Expert AI | Dark Mode</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --fg: #ffffff;
+            --accent: #ffffff;
+            --border: #222222;
+            --panel: #0a0a0a;
+            --user-msg: #111111;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            selection-background: var(--accent);
+            selection-color: var(--bg);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background-color: var(--bg);
+            color: var(--fg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 20px 150px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .message {
+            display: flex;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-inner {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            flex-shrink: 0;
+            color: var(--fg);
+        }
+
+        .content {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #d1d1d1;
+        }
+
+        .message.user .content {
+            color: var(--fg);
+            background: var(--user-msg);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        /* Typography & Code */
+        h1, h2, h3 { color: var(--fg); margin-top: 24px; }
+        a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--border); }
+        
+        .code-block { 
+            margin: 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #050505;
+        }
+
+        pre {
+            margin: 0;
+            padding: 24px;
+            overflow-x: auto;
+            background: transparent !important;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 13.5px;
+            color: #e0e0e0;
+        }
+
+        p code {
+            background: var(--user-msg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--fg);
+            color: var(--bg);
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .code-block:hover .copy-btn { opacity: 1; }
+
+        /* Input Area */
+        #input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 20px;
+            background: linear-gradient(transparent, var(--bg) 40%);
+            display: flex;
+            justify-content: center;
+        }
+
+        #form {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 8px 12px;
+            transition: border-color 0.3s;
+        }
+
+        #form:focus-within {
+            border-color: #444;
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--fg);
+            padding: 12px;
+            font-size: 15px;
+            outline: none;
+            resize: none;
+            min-height: 24px;
+            max-height: 144px;
+            line-height: 1.5;
+            overflow-y: hidden;
+            font-family: var(--font-main);
+        }
+
+        textarea::placeholder { color: #8a8a8a; }
+
+        button#send-btn {
+            background: var(--fg);
+            color: var(--bg);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button#send-btn:hover { opacity: 0.9; }
+        button#send-btn:active { transform: scale(0.96); }
+        button#send-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+        /* Loading Animation */
+        .loading { display: flex; gap: 4px; padding: 10px 0; }
+        .loading span {
+            width: 5px;
+            height: 5px;
+            background: var(--fg);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading span:nth-child(1) { animation-delay: -0.32s; }
+        .loading span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            #chat-container { padding: 20px 15px 120px; }
+            .message-inner { gap: 12px; }
+            .avatar { display: none; }
+            textarea { max-height: 120px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <div class="message assistant">
+            <div class="message-inner">
+                <div class="avatar">C</div>
+                <div class="content">How can I assist?</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="input-container">
+        <form id="form">
+            <textarea id="user-input" placeholder="Ask anything about C..." required></textarea>
+            <button type="submit" id="send-btn">Send</button>
+        </form>
+    </div>
+
+    <script>
+        // JS remains identical to your original code
+        const form = document.getElementById('form');
+        const input = document.getElementById('user-input');
+        const chatContainer = document.getElementById('chat-container');
+        const sendBtn = document.getElementById('send-btn');
+        const apiBaseUrl = window.location.port === '3000'
+            ? window.location.origin
+            : 'http://127.0.0.1:3000';
+        const maxConversationMessages = 8;
+        const maxInputLines = 5;
+        let conversationHistory = [];
+
+        function autoResizeInput() {
+            const style = window.getComputedStyle(input);
+            const lineHeight = parseFloat(style.lineHeight) || 24;
+            const paddingTop = parseFloat(style.paddingTop) || 0;
+            const paddingBottom = parseFloat(style.paddingBottom) || 0;
+            const maxHeight = (lineHeight * maxInputLines) + paddingTop + paddingBottom;
+
+            input.style.height = 'auto';
+            input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+            input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+        }
+
+        input.addEventListener('input', autoResizeInput);
+        autoResizeInput();
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendBtn.disabled && input.value.trim()) {
+                    form.requestSubmit();
+                }
+            }
+        });
+
+        function appendMessageRow(role) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            msgDiv.innerHTML = `
+                <div class="message-inner">
+                    <div class="avatar">${role === 'user' ? 'U' : 'C'}</div>
+                    <div class="content"></div>
+                </div>
+            `;
+            chatContainer.appendChild(msgDiv);
+            return msgDiv.querySelector('.content');
+        }
+
+        function setLoadingState(container) {
+            container.innerHTML = `
+                <div class="loading">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+        }
+
+        function enhanceCodeBlocks(container) {
+            const preBlocks = container.querySelectorAll('pre');
+            preBlocks.forEach((pre) => {
+                const code = pre.querySelector('code');
+                if (!code) return;
+                if (!pre.parentElement.classList.contains('code-block')) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'code-block';
+                    wrapper.style.position = 'relative';
+                    pre.parentNode.insertBefore(wrapper, pre);
+                    wrapper.appendChild(pre);
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn';
+                    copyBtn.textContent = 'Copy';
+                    wrapper.appendChild(copyBtn);
+                    copyBtn.onclick = async () => {
+                        await navigator.clipboard.writeText(code.textContent);
+                        copyBtn.textContent = 'Copied';
+                        setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+                    };
+                }
+            });
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+
+            const userContent = appendMessageRow('user');
+            userContent.textContent = text;
+            input.value = '';
+            autoResizeInput();
+            sendBtn.disabled = true;
+
+            conversationHistory.push({ role: 'user', content: text });
+            conversationHistory = conversationHistory.slice(-maxConversationMessages);
+
+            const assistantContent = appendMessageRow('assistant');
+            let fullResponse = '';
+            setLoadingState(assistantContent);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: conversationHistory })
+                });
+
+                if (!response.ok) throw new Error('API Error');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    fullResponse += decoder.decode(value, { stream: true });
+                    assistantContent.innerHTML = marked.parse(fullResponse);
+                    enhanceCodeBlocks(assistantContent);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+                conversationHistory.push({ role: 'assistant', content: fullResponse });
+            } catch (err) {
+                assistantContent.textContent = `Error: ${err.message}`;
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        });
+    </script>
+</body>
+</html>
