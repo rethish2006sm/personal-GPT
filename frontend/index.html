@@ -254,14 +254,14 @@
     </div>
 
     <script>
-        // JS remains identical to your original code
         const form = document.getElementById('form');
         const input = document.getElementById('user-input');
         const chatContainer = document.getElementById('chat-container');
         const sendBtn = document.getElementById('send-btn');
-        const apiBaseUrl = window.location.port === '3000'
-            ? window.location.origin
-            : 'http://127.0.0.1:3000';
+        
+        // Updated backend URL
+        const apiBaseUrl = 'https://personal-gpt-backend.onrender.com';
+        
         const maxConversationMessages = 8;
         const maxInputLines = 5;
         let conversationHistory = [];
@@ -280,6 +280,7 @@
 
         input.addEventListener('input', autoResizeInput);
         autoResizeInput();
+        
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -368,6 +369,9 @@
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+                    
+                    if (fullResponse === '') assistantContent.innerHTML = ''; // Remove loader
+
                     fullResponse += decoder.decode(value, { stream: true });
                     assistantContent.innerHTML = marked.parse(fullResponse);
                     enhanceCodeBlocks(assistantContent);
